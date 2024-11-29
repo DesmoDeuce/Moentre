@@ -3,6 +3,9 @@
     <output-path>$PROJECT_DIR$/out/artifacts</output-path>
     <root id="archive" name="Moentre.jar">
       <element id="module-output" name="Moentre" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../javax.json-1.0.4.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../javax.json-api-1.1.4.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../DesmoLibraries.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>

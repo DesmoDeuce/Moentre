@@ -13,6 +13,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -23,9 +24,11 @@ public class Screen extends JPanel implements ActionListener {
 
     public static Timer timer;
     public static int score = 0;
-    public static int speed = 101;
+    public static int speed = 41;
     public static int time = speed;
     public static boolean running = true;
+    public static boolean victory = false;
+    public static boolean deadDisplay = false;
     public static Grid grid = new Grid(new Size(6, 6), new Size(97, 97), Color.GRAY, 3);
 
     public Screen() {
@@ -62,13 +65,22 @@ public class Screen extends JPanel implements ActionListener {
                     int n3 = new Random().nextInt(3);
                     Cubes.ENEMY3.getPos().setY(grid.getYs().get(ns.get(n3)));
                     score++;
-                    Moentre.moentre.setTitle("Score: " + score);
+                    try {
+                        Moentre.moentre.setTitle("Score: " + score + " | High Score: " + Json.createReader(new FileReader("highScore.json")).readObject().getInt("highScore"));
+                    } catch (FileNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
                     if (speed <= 1) {
-                        Moentre.moentre.setTitle("You Win! | Score: " + score);
+                        try {
+                            Moentre.moentre.setTitle("You Won! | Score: " + score + " | High Score: " + Json.createReader(new FileReader("highScore.json")).readObject().getInt("highScore"));
+                        } catch (FileNotFoundException e) {
+                            throw new RuntimeException(e);
+                        }
                         running = false;
-                        speed = 101;
+                        victory = true;
+                        speed = 60;
                     } else {
-                        speed -= 2;
+                        speed--;
                     }
                 }
                 if (Cubes.ENEMY1.getPos().getX() == Cubes.PLAYER1.getPos().getX()) {
@@ -78,15 +90,39 @@ public class Screen extends JPanel implements ActionListener {
                             || Cubes.ENEMY1.getPos().getY() == Cubes.PLAYER2.getPos().getY()
                             || Cubes.ENEMY2.getPos().getY() == Cubes.PLAYER2.getPos().getY()
                             || Cubes.ENEMY3.getPos().getY() == Cubes.PLAYER2.getPos().getY()) {
-                        running = false;
-                        Moentre.moentre.setTitle("You Lose! | Score: " + score);
                         try {
-                            if (score > Json.createReader(new FileReader("src/highScore.json")).readObject().getInt("highScore")) {
-                                JsonWriter writer = Json.createWriter(new FileWriter("src/highScore.json"));
+                            Moentre.moentre.setTitle("You Lose! | Score: " + score + " | High Score: " + Json.createReader(new FileReader("highScore.json")).readObject().getInt("highScore"));
+                        } catch (FileNotFoundException e) {
+                            throw new RuntimeException(e);
+                        }
+                        running = false;
+                        speed = 60;
+                        try {
+                            if (score > Json.createReader(new FileReader("highScore.json")).readObject().getInt("highScore")) {
+                                JsonWriter writer = Json.createWriter(new FileWriter("highScore.json"));
                                 writer.write(Json.createObjectBuilder().add("highScore", score).build());
                                 writer.close();
                             }
                         } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+            } else {
+                deadDisplay = !deadDisplay;
+                if (deadDisplay) {
+                    Moentre.moentre.setTitle("Press SPACE to start over!");
+                } else {
+                    if (victory) {
+                        try {
+                            Moentre.moentre.setTitle("You Won! | Score: " + score + " | High Score: " + Json.createReader(new FileReader("highScore.json")).readObject().getInt("highScore"));
+                        } catch (FileNotFoundException e) {
+                            throw new RuntimeException(e);
+                        }
+                    } else {
+                        try {
+                            Moentre.moentre.setTitle("You Lose! | Score: " + score + " | High Score: " + Json.createReader(new FileReader("highScore.json")).readObject().getInt("highScore"));
+                        } catch (FileNotFoundException e) {
                             throw new RuntimeException(e);
                         }
                     }
@@ -114,9 +150,10 @@ public class Screen extends JPanel implements ActionListener {
 
         @Override
         public void keyPressed(KeyEvent e) {
-            if (running) {
+
                 Position pos1 = Cubes.PLAYER1.getPos();
                 Position pos2 = Cubes.PLAYER2.getPos();
+            if (running) {
                 if (e.getExtendedKeyCode() == KeyEvent.VK_W) {
                     if (pos1.getY() > grid.getYs().get(0)) {
                         Cubes.PLAYER1.setPos(pos1.add(Directions.NORTH, grid));
@@ -133,13 +170,29 @@ public class Screen extends JPanel implements ActionListener {
                         Cubes.PLAYER2.setPos(pos2.add(Directions.SOUTH, grid));
                     }
                 }
-                if (e.getExtendedKeyCode() == KeyEvent.VK_SPACE) {
+            }
+            if (e.getExtendedKeyCode() == KeyEvent.VK_SPACE) {
+                if (running) {
                     if (pos1.getY() > grid.getYs().get(0)) {
                         Cubes.PLAYER1.setPos(pos1.add(Directions.NORTH, grid));
                     }
                     if (pos2.getY() < grid.getYs().get(4)) {
                         Cubes.PLAYER2.setPos(pos2.add(Directions.SOUTH, grid));
                     }
+                } else {
+                    speed = 41;
+                    try {
+                        Moentre.moentre.setTitle("Score: " + 0 + " | High Score: " + Json.createReader(new FileReader("highScore.json")).readObject().getInt("highScore"));
+                    } catch (FileNotFoundException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                    Cubes.PLAYER1.getPos().setY(grid.getYs().get(1));
+                    Cubes.PLAYER2.getPos().setY(grid.getYs().get(2));
+                    Cubes.ENEMY1.setPos(new Position(grid.getXs().get(5), grid.getYs().get(0)));
+                    Cubes.ENEMY2.setPos(new Position(grid.getXs().get(5), grid.getYs().get(3)));
+                    Cubes.ENEMY3.setPos(new Position(grid.getXs().get(5), grid.getYs().get(4)));
+                    victory = false;
+                    running = true;
                 }
             }
         }
